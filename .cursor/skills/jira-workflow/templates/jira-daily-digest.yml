@@ -1,0 +1,38 @@
+# .github/workflows/jira-daily-digest.yml  (added by jira-workflow install.sh --team)
+#
+# Once per weekday, posts one "Daily status" comment on each Jira ticket that had
+# activity in this repo: commits on any branch (by key in commit or branch name) and
+# the state of its PRs (awaiting review, approvals, changes requested, merged).
+# Monday's run covers the weekend. Tickets with no activity get no comment.
+# Turn off with "updates": {"dailyDigest": false} in .jira-workflow.json.
+#
+# Secrets (org- or repo-level): JIRA_BASE_URL, JIRA_EMAIL (Cloud), JIRA_API_TOKEN
+name: Jira daily status
+
+on:
+  schedule:
+    - cron: "0 21 * * 1-5"   # 21:00 UTC weekdays (5pm US Eastern in summer) - adjust to your team
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: "Look-back window in hours (blank = 24, 72 on Mondays)"
+        required: false
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # all branches, so work in progress is included
+      - name: Post daily status to Jira
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .github/jira/jira.py digest ${{ inputs.hours && format('--hours {0}', inputs.hours) || '' }}

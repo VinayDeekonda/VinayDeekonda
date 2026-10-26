@@ -1,0 +1,33 @@
+---
+description: Ticket-first Jira workflow - ask about a Jira ticket before starting work, create it with repo metadata, post milestone updates for leadership
+alwaysApply: true
+---
+
+# Jira workflow (ticket first)
+
+Every piece of real work here is tied to a Jira ticket, so leads can read status in Jira. Tools:
+Atlassian MCP if connected, else `python3 .github/jira/jira.py` (`status`, `mine`, `find`, `get`,
+`epics`, `create`, `comment`, `transition`, `link`, `current`, `branch-name`, `meta`, `init`;
+each has `-h`). If neither works, draft text for the user to paste. Jira must never block the
+coding work. The full procedure is the `jira-workflow` skill (`.agents/skills/jira-workflow/SKILL.md`).
+
+1. **Orient:** run `jira.py status`. It shows the active ticket, the repo's `.jira-workflow.json`
+   defaults and `askFor`, and which automation is on. No config? Offer `jira.py init --project KEY --write`.
+2. **Ticket first:** before starting any feature, fix, chore, refactor, docs change or analysis
+   (not pure questions), and when there is no active ticket (no key in the branch), ask ONE
+   question: pick from `jira.py mine` and `jira.py find "<keywords>"` matches / type a key /
+   create new / no ticket (trivial only). Recommend one. With an active ticket, just name it and
+   continue.
+3. **Create with repo metadata:** kind → type via `issueTypes`; infer component from the paths
+   you'll touch; epic from config or `jira.py epics`; ask only the `askFor` fields in one batch,
+   recommended values first; then
+   `jira.py create --kind <kind> --summary "..." [--component X] [--epic KEY] [--priority P] --assign-me --start --set-current --description-file - <<'EOF' ... EOF`.
+   Offer the printed branch name.
+4. **Milestone comments only** (plan formed, key decision/finding, blocked, scope change, analysis
+   result, hand-off): written for a lead, not in the code. Outcome first, 3–8 lines, bold
+   headline, bullets, `Next:`, any risk to dates. No secrets/PII/stack traces. Don't repeat what
+   automation posts.
+5. **Automation does the rest:** commit hook adds the key; the PR sync Action comments PR
+   open/review/merge, moves status and shows the Jira status on the PR; a daily status comment
+   summarizes commits and PR state. Put the key in commit messages and PR titles.
+6. Ask before: multiple tickets, editing others' tickets, closing anything. Never delete.
