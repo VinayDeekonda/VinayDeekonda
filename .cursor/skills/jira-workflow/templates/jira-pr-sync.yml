@@ -1,0 +1,42 @@
+# .github/workflows/jira-pr-sync.yml  (added by jira-workflow install.sh --team)
+#
+# For PRs whose branch or title contains a Jira key (e.g. ENG-123):
+#   - comments on the ticket when the PR is opened, ready for review, approved,
+#     has changes requested, merged or closed
+#   - links the PR on the ticket and moves the ticket (transitions in .jira-workflow.json)
+#   - keeps a "Jira: ENG-123 · Story · In Review · ..." status line at the top of the PR
+#   - optionally fails when the PR has no Jira key (updates.requireKey)
+#
+# Secrets (org- or repo-level): JIRA_BASE_URL, JIRA_EMAIL (Cloud), JIRA_API_TOKEN
+name: Jira PR sync
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, edited, closed]
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: jira-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  jira:
+    runs-on: ubuntu-latest
+    # Forks can't read secrets.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/jira
+      - name: Sync with Jira
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .github/jira/jira.py github-pr
